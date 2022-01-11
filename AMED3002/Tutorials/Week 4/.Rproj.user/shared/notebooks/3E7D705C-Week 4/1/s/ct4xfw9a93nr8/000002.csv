@@ -1,0 +1,3 @@
+"0","Data <- na.omit(Data)"
+"0",""
+"0","# Maybe Data <- Data[rowSums(is.na(Data))==0,]"
