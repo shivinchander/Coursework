@@ -1,0 +1,164 @@
+---
+title: "Week 7"
+author: "Shivin Chander"
+date: "1/11/2022"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# 2.1 B cells and EBV infected B cells (LCLs)
+
+The following data comes from a manuscript “Evidence from genome wide association studies implicates reduced control of Epstein-Barr virus infection in multiple sclerosis susceptibility” (https://www.ncbi.nlm.nih.gov/pubmed/31039804). There were multiple goals for the RNAseq component of project:
+
+* Identify the gene expression changes that occur when B cells are infected with EBV and transformed into LCLs.
+
+* Determine which pathways are over-represented in the differentially expressed genes.
+
+* Assess if there are more MS risk genes then expected by chance in the differentially expressed genes.
+
+Use this dataset as an opportunity to explore the behaviour of a small RNA-Seq experiment. In this lab we will start by just processing and exploring the data.
+
+
+## Install / load required R packages
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(ggfortify)
+library(RColorBrewer)
+
+# BiocManager needed for the next packages
+# if (!requireNamespace('BiocManager', quietly =
+# TRUE)) install.packages('BiocManager') /// BiocManager::install('PACKAGENAME')
+
+library(GEOquery)
+library(org.Hs.eg.db)
+library(limma)
+library(edgeR)
+library(Glimma)
+library(Homo.sapiens)
+
+```
+
+
+## Q1: Read in the data.
+
+```{r}
+
+sfiles <- getGEOSuppFiles("GSE126379")
+fnames <- rownames(sfiles)
+
+Data = read.delim(fnames[1], header = TRUE)
+head(Data)
+
+```
+
+## Q2: Tidy up the dataset and set it up for downstream analysis
+
+```{r}
+
+ENTREZID <- mapIds(Homo.sapiens, keys = as.character(Data$Gene.Name), column = c("ENTREZID"), 
+    keytype = "SYMBOL", multiVals = "first")
+genes <- data.frame(ENTREZID, SYMBOL = Data$Gene.Name)
+
+chooseGenes <- which(!duplicated(genes$SYMBOL) & !duplicated(genes$ENTREZID))
+
+genes <- genes[chooseGenes, ]
+Data <- Data[chooseGenes, ]
+```
+```{r}
+
+# MANIPULATE GENE COUNTS
+
+colnames(Data)
+counts <- Data[, grep("Counts", colnames(Data))]
+
+# LCL are labelled 1, B cell labelled 2. renaming the columns to reflect this
+colnames(counts) <- sub("Reads.Counts..BLCL_", "", colnames(counts))
+colnames(counts) <- sub("1", "LCL", colnames(counts))
+colnames(counts) <- sub("2", "CD19B", colnames(counts))
+colnames(counts) <- sub("CD19B.", "_CD19B", colnames(counts))
+colnames(counts) <- sub("LCL.", "_LCL", colnames(counts))
+colnames(counts)
+
+```
+
+```{r}
+# make the Gene IDs the name of the rows
+rownames(counts) <- genes$SYMBOL
+```
+
+```{r}
+# MANIPULATE SAMPLE ANNOTATIONS
+
+str_split_n <- function(string, pattern, n) {
+    out <- str_split(string, pattern, simplify = TRUE)
+    apply(out, 1, `[`, i = n)
+}
+
+# using sample names to make factors for group and individual
+group <- str_split_n(colnames(counts), "_", 2) %>% factor()
+individual <- str_split_n(colnames(counts), "_", 1) %>% factor()
+
+# put information into a data frame
+samples <- data.frame(group, individual)
+samples
+```
+```{r}
+# MAKE DGEList
+
+# make DGEList object to connect gene counts with sample information
+# BLCL <- DGEList(counts = counts, samples = samples, genes = genes)
+# BLCL
+```
+
+## Q3: Further processing and normalisation of the data
+
+```{r}
+# # COUNTS NORMALIZATION
+# 
+# # calculate normalization factors
+# BLCL <- calcNormFactors(BLCL, method = "TMM")
+# # make a copy of BLCLDGEList to use in extension tab.
+# BLCL2 <- BLCL
+# 
+# # show the nomalisation factors. For this dataset the effect of TMM-normalisation
+# # is mild, as evident in the magnitude of the scaling factors, which are all
+# # relatively close to 1.
+# 
+# BLCL$samples$norm.factors
+# 
+# # keep genes with large enough counts to be considered useful.
+# keep <- filterByExpr(BLCL)
+# BLCL <- BLCL[keep, ]
+# 
+# # calculate the counts per million reads for each gene for all samples
+# cpm <- cpm(BLCL)
+# # calculate the log of these CPM values
+# lcpm <- cpm(BLCL, log = TRUE)
+```
+
+## Q4: Explore data with PCA. Can you see any structure?
+
+```{r}
+# # Perform PCA
+# pca <- prcomp(t(lcpm), scale = TRUE)
+# # Plot results
+# autoplot(pca, data = samples, colour = "group", shape = "individual")
+# 
+# # dimension reduction called MDS.
+# plotMDS(lcpm, labels = group)
+# plotMDS(lcpm, labels = individual)
+# 
+# 
+# # using Glimma
+# glMDSPlot(lcpm, labels = paste(group, individual, sep = "_"), groups = BLCL$samples[, 
+#     c("group", "individual")], launch = TRUE)
+```
+
+
+
+
