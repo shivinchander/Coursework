@@ -1,0 +1,117 @@
+---
+title: "Week 3"
+author: "Shivin Chander"
+date: "3/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# 3.1 Respiratory illness
+
+This data contains the respiratory status of patients recruited for a randomised clinical multicenter trial. In each of two centres, eligible patients were randomly assigned to active treatment or placebo. During the treatment, the respiratory status (categorised poor or good) was determined at each of four, monthly visits. The trial recruited 111 participants (54 in the active group, 57 in the placebo group) and there were no missing data for either the responses or the covariates. The question of interest is to assess whether the treatment is effective and to estimate its effect.
+
+
+### Q1: Read in the data and summarise it into a contingency table.
+
+```{r}
+respiratory <- read.delim("https://wimr-genomics.vip.sydney.edu.au/AMED3002/data/respiratory.txt", 
+    sep = "\t")
+
+tab <- table(respiratory$treatment, respiratory$status)
+tab
+```
+
+
+### Q2: We would like to test if there is any evidence that receiving the treatment altered your chance of having a good respiratory status? Rephrase this question into a null and alternate hypothesis that is consistent with a chi-square test.
+
+N0: There is no difference between the people treated and those that were not.
+
+Na: There is a difference between the people treated and those that were not.
+
+
+### Q3: Perform a chi-square test
+
+```{r}
+chisq.test(tab)
+
+```
+
+
+### Q4: Check the assumptions for a chi-square test
+
+```{r}
+test = chisq.test(tab)
+test$expected >= 5
+
+```
+
+```{r}
+str(test)
+```
+
+
+
+### Q5: What is your conclusion for this test?
+
+The p-value calculated was 9.148e-06, therefore, the treatment did have a positive association with producing a good result.
+
+
+### Q6: Interpret the relationship further by calculating a relative risk or odds ratio. Are both appropriate in this case?
+
+```{r}
+OR <- (tab[1, 1] * tab[2, 2])/(tab[2, 1] * tab[1, 2])
+OR
+```
+
+
+# 3.2 Random data (Extension)
+
+Lets perform a test of independence with randomly generated data
+
+### E1: Create two vectors of random data.
+
+```{r}
+## Set seed for reproducible results
+set.seed(51773)
+
+## Generate two random vectors of size n. Can be done with the 'sample'
+## function.
+n = 50
+AB = sample(c("A", "B"), n, replace = TRUE)
+CD = sample(c("C", "D"), n, replace = TRUE)
+
+head(AB)
+head(CD)
+```
+
+
+### E2: Create a contingency table to view the relationship between AB and CD
+
+```{r}
+tabABCD = table(AB, CD)
+tabABCD
+```
+
+
+### E3: Test for independence between AB and CD
+
+```{r}
+chisq.test(tabABCD)
+```
+
+
+### E4: Check assumptions of test
+
+```{r}
+chisq.test(tabABCD)$expected
+```
+
+
+### E5: Conclusion.
+
+The p-value is greater than 0.05 therefore we fail to reject the null hypothesis and we conclude that the result is statistically nonsignificant.
+There is no evidence that AB and CD are not independent. 
