@@ -1,0 +1,99 @@
+---
+title: "Week 5"
+author: "Shivin Chander"
+date: "3/31/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+# 2.1 Tooth Growth Dataset
+
+The data set ToothGrowth.txt has measurements of tooth growth (len) of guinea pigs for different dosages of Vitamin C (dose) and two different delivery methods (supp). The response is the length of odontoblasts (len) in each of 10 guinea pigs at each of three dose levels of Vitamin C (0.5, 1, and 2 mg) with each of two delivery methods (orange juice or ascorbic acid). (McNeil, et al, 1977) References: McNeil, D. R. (1977) Interactive Data Analysis. New York: Wiley. Perform a two-way analysis of variance of tooth growth modelled by dosage and delivery method. The following questions help you with this analysis.
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(datasets)
+```
+
+
+## Q1: Obtain boxplots of the data.
+```{r}
+
+# toothgrowth is loaded from the 'datasets' package
+tooth = ToothGrowth
+ggplot(tooth, aes(y = len, x = supp, colour = factor(dose))) + geom_boxplot() + theme_classic() + 
+    xlab("Supplement") + ylab("Length") + labs(colour = "Supplement")
+
+```
+
+
+## Q2: Consider only Vitamin C supplement, assess the effect of different dose levels. What is the difference between aov1 and aov2 ?
+```{r}
+VCdata = tooth[tooth[, "supp"] == "VC", ]
+dim(VCdata)
+head(VCdata)
+```
+
+```{r}
+boxplot(len ~ dose, VCdata)
+```
+
+```{r}
+aov1 = aov(len ~ dose, VCdata)
+summary(aov1)
+```
+
+```{r}
+aov2 = aov(len ~ factor(dose), VCdata)
+summary(aov2)
+```
+
+```{r}
+ggplot(VCdata, aes(y = len, x = factor(dose))) + geom_boxplot() + theme_classic() + 
+    xlab("Dose") + ylab("Length")
+```
+
+```{r}
+## another way of fitting anova in R
+fit = lm(len ~ factor(dose), VCdata)
+anova(fit)
+```
+
+## Q3: Obtain an interaction plot to visualise the interaction between dose and supplement on tooth length and comment on the meaning of the plot. This can be using the function interaction.plot as well as in ggplot.
+
+```{r}
+
+# changing dose to factor
+tooth$dose = as.factor(tooth$dose)
+
+## interaction.plot function
+attach(tooth)
+interaction.plot(dose, supp, len)
+detach()
+
+## with ggplot
+ggplot(tooth, aes(x = factor(dose), y = len, colour = supp)) + geom_boxplot() + stat_summary(fun.y = mean, 
+    geom = "line", aes(group = supp)) + theme_classic() + xlab("Dose") + ylab("Length") + 
+    labs(colour = "Supplement")
+
+```
+
+## Q4: Fit the full model including interactions and obtain the corresponding analysis of variance table. Next, use the F-test to compare the full model with the additive model (no interaction model).
+
+```{r}
+tooth.aov = aov(len ~ supp * dose, tooth)
+summary(tooth.aov)
+
+tooth.aov.additive = aov(len ~ supp + dose, tooth)
+summary(tooth.aov.additive)
+
+anova(tooth.aov, tooth.aov.additive)
+```
+
